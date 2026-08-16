@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adonai Timetable</title>
+<meta name="description" content="Sagantaa Barnootaa Mana Barumsaa">
+<meta name="theme-color" content="#1f3d2f">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Adonai">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:title" content="Adonai Timetable">
+<meta property="og:description" content="Sagantaa Barnootaa Mana Barumsaa">
+<meta property="og:type" content="website">
+<style>
+  :root{
+    --board-green:#1f3d2f;
+    --board-green-dark:#163024;
+    --chalk:#f4efe1;
+    --chalk-dim:#d8d2c0;
+    --wood:#8a5a34;
+    --wood-dark:#6b4526;
+    --paper:#fbf7ec;
+    --accent:#e0a83e;
+    --danger:#c0453a;
+    --ok:#3f7d5c;
+    --line:#c9c0a8;
+    --shadow: 0 8px 24px rgba(0,0,0,.25);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
+    background: var(--board-green);
+    background-image: radial-gradient(circle at 20% 10%, rgba(255,255,255,.03), transparent 40%),
+                       radial-gradient(circle at 80% 80%, rgba(255,255,255,.03), transparent 40%);
+    color:#222;
+    min-height:100vh;
+  }
+  .app{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+  /* Header placard */
+  .placard-wrap{ display:flex; justify-content:center; margin-bottom:10px; }
+  .placard{
+    background: var(--wood);
+    background-image: linear-gradient(180deg, var(--wood), var(--wood-dark));
+    border-radius: 10px;
+    padding: 14px 34px;
+    box-shadow: var(--shadow);
+    position:relative;
+    transform: rotate(-1.2deg);
+    border: 3px solid #5a3a1e;
+  }
+  .placard::before, .placard::after{
+    content:''; position:absolute; top:-6px; width:12px; height:12px; border-radius:50%;
+    background:#3a3a3a; box-shadow: inset 0 -2px 2px rgba(255,255,255,.2);
+  }
+  .placard::before{ left: 14px; }
+  .placard::after{ right: 14px; }
+  .wordmark{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 34px;
+    font-weight:700;
+    color: var(--chalk);
+    text-align:center;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 3px rgba(0,0,0,.3);
+    line-height:1;
+  }
+  .caption{
+    text-align:center;
+    color: var(--chalk-dim);
+    font-size: 11px;
+    letter-spacing: 4px;
+    margin-top:4px;
+  }
+  .dots{ display:flex; justify-content:center; gap:8px; margin: 14px 0 22px; }
+  .dot{ width:10px; height:10px; border-radius:50%; background: rgba(244,239,225,.25); transition: all .25s; }
+  .dot.active{ background: var(--accent); transform: scale(1.3); }
+  .dot.done{ background: var(--chalk-dim); }
+
+  .card{
+    background: var(--paper);
+    border-radius: var(--radius);
+    padding: 26px 24px;
+    box-shadow: var(--shadow);
+  }
+  h2.page-title{
+    margin:0 0 4px;
+    font-family: Georgia, serif;
+    color: var(--board-green-dark);
+  }
+  p.page-sub{ margin:0 0 20px; color:#6b6558; font-size:14px; }
+
+  /* Floating field */
+  .field-wrap{ position:relative; margin-bottom: 22px; }
+  .field-wrap input, .field-wrap select{
+    width:100%; padding: 16px 14px 8px; font-size:15px;
+    border: 2px solid var(--line); border-radius:10px; background: #fff;
+    outline:none; transition: all .2s;
+  }
+  .field-wrap label{
+    position:absolute; left:14px; top:16px; color:#8a8267; font-size:15px;
+    pointer-events:none; transition: all .18s ease; background:transparent;
+  }
+  .field-wrap input:focus, .field-wrap select:focus{ border-color: var(--accent); box-shadow: 0 0 0 3px rgba(224,168,62,.18); }
+  .field-wrap input:focus ~ label, .field-wrap input:not(:placeholder-shown) ~ label,
+  .field-wrap.filled label{
+    top:-9px; left:10px; font-size:11px; background: var(--paper); padding:0 6px; color: var(--board-green-dark); font-weight:600;
+  }
+
+  .row{ display:flex; gap:14px; flex-wrap:wrap; }
+  .row > .field-wrap{ flex:1; min-width:180px; }
+
+  .btn{
+    padding: 12px 22px; border-radius: 10px; border:none; cursor:pointer;
+    font-size:14px; font-weight:600; transition: transform .12s, box-shadow .12s;
+  }
+  .btn:active{ transform: scale(.97); }
+  .btn-primary{ background: var(--board-green); color: var(--chalk); }
+  .btn-primary:hover{ background: var(--board-green-dark); }
+  .btn-accent{ background: var(--accent); color:#3a2a05; }
+  .btn-outline{ background:transparent; border:2px solid var(--line); color:#555; }
+  .btn-danger{ background: var(--danger); color:#fff; }
+  .btn-sm{ padding:7px 14px; font-size:12.5px; }
+  .btn[disabled]{ opacity:.45; cursor:not-allowed; }
+
+  .nav-row{ display:flex; justify-content:space-between; margin-top:26px; }
+
+  .chip-list{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .chip{
+    display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:20px;
+    background:#fff; border:2px solid var(--line); font-size:13.5px;
+  }
+  .chip .swatch{ width:12px; height:12px; border-radius:50%; }
+  .chip .x{ cursor:pointer; color:#b23; font-weight:700; padding:0 2px; }
+
+  table{ border-collapse:collapse; width:100%; font-size:12.5px; }
+  th, td{ border:1px solid var(--line); padding:6px 5px; text-align:center; vertical-align:middle; }
+  th{ background: var(--board-green); color: var(--chalk); font-weight:600; }
+  td.dayhead{ background:#efe9d8; font-weight:700; }
+  td.break-col{ background:#ede4c9; font-style:italic; color:#7a6a3a; font-size:11px; }
+
+  .cell-block{ border-radius:6px; padding:4px 3px; min-height: 34px; display:flex; flex-direction:column; justify-content:center; }
+  .cell-subj{ font-weight:700; font-size:12px; }
+  .cell-teacher{ font-size:10px; opacity:.85; }
+  .cell-empty{ color:#bbb; font-size:11px; }
+
+  /* Teacher accordion cards (Page 5) */
+  .teacher-card{ border:2px solid var(--line); border-radius:12px; margin-bottom:12px; overflow:hidden; background:#fff; }
+  .teacher-card.open{ border-color: var(--accent); }
+  .teacher-summary{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; cursor:pointer; }
+  .teacher-summary .name{ font-weight:700; color: var(--board-green-dark); }
+  .teacher-summary .code{ font-size:12px; color:#8a8267; margin-left:6px; }
+  .badge{ background: var(--board-green); color:var(--chalk); border-radius:14px; padding:4px 12px; font-size:12px; font-weight:600; }
+  .badge.zero{ background:#b0aa96; }
+  .teacher-body{ padding: 4px 16px 16px; border-top: 1px dashed var(--line); }
+  .alloc-row{ display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid #eee2c8; font-size:13px; }
+  .alloc-row .swatch{ width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .alloc-row .grow{ flex:1; }
+  .alloc-total-line{ text-align:right; font-size:13px; font-weight:700; margin-top:8px; color: var(--board-green-dark); }
+
+  .view-tabs{ display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .view-tab{ padding:8px 16px; border-radius:20px; border:2px solid var(--line); background:#fff; cursor:pointer; font-size:13px; font-weight:600; color:#666; }
+  .view-tab.active{ background: var(--board-green); color: var(--chalk); border-color: var(--board-green); }
+
+  .legend{ display:flex; flex-wrap:wrap; gap:10px; margin: 14px 0; font-size:11.5px; }
+  .legend .item{ display:flex; align-items:center; gap:5px; }
+  .legend .sw{ width:10px; height:10px; border-radius:3px; }
+
+  .warn-box{ background:#fdf1d8; border:1px solid #e0c27a; border-radius:10px; padding:10px 14px; font-size:13px; color:#7a5a10; margin-bottom:14px; }
+
+  .print-footer{ display:none; text-align:center; font-size:11px; color:#888; margin-top:10px; font-family: Georgia, serif; }
+
+  @media print{
+    body{ background:#fff; }
+    .placard-wrap, .dots, .nav-row, .view-tabs, .btn, .no-print{ display:none !important; }
+    .app{ padding:0; max-width:100%; }
+    .card{ box-shadow:none; padding:0; }
+    table{ font-size:10.5px; }
+    th, td{ padding:3px 2px; }
+    .print-footer{ display:block; }
+    .schedule-block{ page-break-inside: avoid; }
+  }
+
+  @media (max-width:600px){
+    .wordmark{ font-size:26px; }
+    .card{ padding:18px 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="placard-wrap no-print">
+    <div class="placard">
+      <div class="wordmark">Adonai</div>
+      <div class="caption">TIMETABLE</div>
+    </div>
+  </div>
+  <div class="dots no-print" id="dots"></div>
+  <div class="card" id="pageRoot"></div>
+</div>
+
+<script>
+/* ================== STATE ================== */
+const DAY_NAMES_ALL = ['Wiixata','Kibxata','Roobii','Kamiisa','Jimaata','Sanbata','Dilbata'];
+const COLOR_PALETTE = ['#c0453a','#3f7d5c','#3a6ea5','#b5832b','#7a5ca6','#c26b9e','#4a8a8a','#a3762f','#5c7a3a','#a54a7a','#3a5ca6','#8a5a34'];
+
+let state = {
+  page: 1,
+  school: { name:'', year:'', days:5, periods:6, periodTimes:[], breakAfterPeriod:null },
+  subjects: [],   // {id,name,color}
+  teachers: [],   // {id,name,code}
+  classes: [],    // {id,name}
+  allocations: [],// {id,teacherId,subjectId,classId,perWeek}
+  openTeacherId: null, // accordion: which teacher card is expanded on page 5
+  schedule: null, // generated result
+  scheduleView: 'kutaa' // kutaa | barsiisaa | waliigalaa
+};
+
+let uidCounter = 1;
+function uid(){ return 'id' + (uidCounter++); }
+
+/* ================== HELPERS ================== */
+function dayNames(){ return DAY_NAMES_ALL.slice(0, state.school.days); }
+function breakAfter(){
+  if(state.school.breakAfterPeriod) return state.school.breakAfterPeriod;
+  return Math.max(2, Math.ceil(state.school.periods/2));
+}
+function syncPeriodTimes(){
+  const n = state.school.periods;
+  const arr = state.school.periodTimes;
+  while(arr.length < n) arr.push({start:'', end:''});
+  while(arr.length > n) arr.pop();
+  if(!state.school.breakAfterPeriod || state.school.breakAfterPeriod >= n){
+    state.school.breakAfterPeriod = Math.max(2, Math.ceil(n/2));
+  }
+}
+function periodTimeLabel(index){
+  const pt = state.school.periodTimes[index];
+  if(pt && pt.start && pt.end) return pt.start + '–' + pt.end;
+  return '';
+}
+function teacherById(id){ return state.teachers.find(t=>t.id===id); }
+function subjectById(id){ return state.subjects.find(s=>s.id===id); }
+function classById(id){ return state.classes.find(c=>c.id===id); }
+function teacherTotal(teacherId){
+  return state.allocations.filter(a=>a.teacherId===teacherId).reduce((s,a)=>s+a.perWeek,0);
+}
+
+/* ================== RENDER ROOT ================== */
+function render(){
+  renderDots();
+  const root = document.getElementById('pageRoot');
+  root.innerHTML = '';
+  const pages = [null, page1, page2, page3, page4, page5, page6];
+  pages[state.page](root);
+}
+function renderDots(){
+  const dots = document.getElementById('dots');
+  dots.innerHTML='';
+  for(let i=1;i<=6;i++){
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===state.page?' active':(i<state.page?' done':''));
+    dots.appendChild(d);
+  }
+}
+function nav(container, backFn, nextFn, nextLabel){
+  const row = document.createElement('div');
+  row.className='nav-row';
+  const back = document.createElement('button');
+  back.className='btn btn-outline'; back.textContent='Duubatti';
+  back.disabled = !backFn;
+  back.onclick = backFn;
+  const next = document.createElement('button');
+  next.className='btn btn-primary'; next.textContent = nextLabel || 'Itti fufi';
+  next.onclick = nextFn;
+  row.appendChild(back); row.appendChild(next);
+  container.appendChild(row);
+}
+function floatingField(label, value, onInput, type='text'){
+  const wrap = document.createElement('div');
+  wrap.className='field-wrap' + (value ? ' filled':'');
+  const input = document.createElement('input');
+  input.type = type; input.value = value || ''; input.placeholder=' ';
+  input.oninput = e => { onInput(e.target.value); wrap.classList.toggle('filled', !!e.target.value); };
+  const lab = document.createElement('label'); lab.textContent = label;
+  wrap.appendChild(input); wrap.appendChild(lab);
+  return wrap;
+}
+function boxedSelect(label, value, options, onChange){
+  const wrap = document.createElement('div');
+  wrap.className='field-wrap filled';
+  const sel = document.createElement('select');
+  options.forEach(o=>{
+    const opt = document.createElement('option');
+    opt.value=o.value; opt.textContent=o.label;
+    if(String(o.value)===String(value)) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = e => onChange(e.target.value);
+  const lab = document.createElement('label'); lab.textContent = label;
+  wrap.appendChild(sel); wrap.appendChild(lab);
+  return wrap;
+}
+
+/* ================== PAGE 1: School info ================== */
+function page1(root){
+  const t = document.createElement('h2'); t.className='page-title'; t.textContent='Fuula 1: Odeeffannoo Mana Barumsaa';
+  const s = document.createElement('p'); s.className='page-sub'; s.textContent='Maqaa mana barumsaa, bara barnootaa fi haala sagantaa guyyaa galchaa.';
+  root.appendChild(t); root.appendChild(s);
+
+  root.appendChild(floatingField('Maqaa Mana Barumsaa', state.school.name, v=>state.school.name=v));
+  root.appendChild(floatingField('Bara Barnootaa (fkn 2018)', state.school.year, v=>state.school.year=v));
+
+  const row = document.createElement('div'); row.className='row';
+  row.appendChild(boxedSelect('Guyyoota Torbanitti', state.school.days,
+    [5,6].map(n=>({value:n,label:n+' guyyoota'})), v=>{ state.school.days=Number(v); render(); }));
+  row.appendChild(boxedSelect('Wayitii Guyyaatti', state.school.periods,
+    [4,5,6,7,8].map(n=>({value:n,label:n+' wayitii'})), v=>{ state.school.periods=Number(v); syncPeriodTimes(); render(); }));
+  root.appendChild(row);
+
+  syncPeriodTimes();
+
+  const timesTitle = document.createElement('h3');
+  timesTitle.textContent = 'Yeroo Wayitii Tokkoo Tokkoo';
+  timesTitle.style.cssText = 'margin:22px 0 4px;font-family:Georgia,serif;color:var(--board-green-dark);font-size:17px;';
+  root.appendChild(timesTitle);
+  const timesSub = document.createElement('p');
+  timesSub.style.cssText = 'margin:0 0 14px;color:#6b6558;font-size:13px;';
+  timesSub.textContent = 'Wayitii tokko tokkoof yeroo jalqabaa fi xumuraa galchaa.';
+  root.appendChild(timesSub);
+
+  for(let p=0; p<state.school.periods; p++){
+    const pRow = document.createElement('div'); pRow.className='row';
+    const pt = state.school.periodTimes[p];
+    const numTag = document.createElement('div');
+    numTag.textContent = 'W' + (p+1);
+    numTag.style.cssText = 'align-self:center;font-weight:700;color:var(--board-green-dark);min-width:34px;';
+    pRow.appendChild(numTag);
+    pRow.appendChild(floatingField('Jalqaba (fkn 2:30)', pt.start, v=>{ pt.start=v; }));
+    pRow.appendChild(floatingField('Xumura (fkn 3:10)', pt.end, v=>{ pt.end=v; }));
+    root.appendChild(pRow);
+  }
+
+  const breakTitle = document.createElement('h3');
+  breakTitle.textContent = 'Bakka Boqonnaa';
+  breakTitle.style.cssText = 'margin:22px 0 4px;font-family:Georgia,serif;color:var(--board-green-dark);font-size:17px;';
+  root.appendChild(breakTitle);
+  const breakSub = document.createElement('p');
+  breakSub.style.cssText = 'margin:0 0 14px;color:#6b6558;font-size:13px;';
+  breakSub.textContent = 'Boqonnaan erga wayitii kamii booda akka seenu filadhaa — kun wayitii dursaa fi kan boodaa addaan baasa.';
+  root.appendChild(breakSub);
+  const breakOpts = [];
+  for(let p=1; p<state.school.periods; p++){
+    breakOpts.push({value:p, label:'Wayitii ' + p + ' booda'});
+  }
+  root.appendChild(boxedSelect('Boqonnaan Erga Wayitii Meeqaa Booda', state.school.breakAfterPeriod,
+    breakOpts, v=>{ state.school.breakAfterPeriod=Number(v); }));
+
+  nav(root, null, ()=>{
+    if(!state.school.name.trim()){ alert('Maqaa mana barumsaa galchaa.'); return; }
+    state.page=2; render();
+  });
+}
+
+/* ================== PAGE 2: Subjects ================== */
+function page2(root){
+  const t = document.createElement('h2'); t.className='page-title'; t.textContent='Fuula 2: Gosoota Barnootaa';
+  const s = document.createElement('p'); s.className='page-sub'; s.textContent='Gosoota barnootaa mana barumsichaatti barsiifaman galchaa.';
+  root.appendChild(t); root.appendChild(s);
+
+  const row = document.createElement('div'); row.className='row';
+  let newName='';
+  const field = floatingField('Maqaa Barnootaa (fkn Herrega)', '', v=>newName=v);
+  row.appendChild(field);
+  const addBtn = document.createElement('button'); addBtn.className='btn btn-accent'; addBtn.textContent='Dabali';
+  addBtn.style.height='52px'; addBtn.style.alignSelf='flex-start';
+  addBtn.onclick=()=>{
+    if(!newName.trim()) return;
+    const color = COLOR_PALETTE[state.subjects.length % COLOR_PALETTE.length];
+    state.subjects.push({id:uid(), name:newName.trim(), color});
+    render();
+  };
+  row.appendChild(addBtn);
+  root.appendChild(row);
+
+  const list = document.createElement('div'); list.className='chip-list';
+  state.subjects.forEach(sub=>{
+    const chip = document.createElement('div'); chip.className='chip';
+    const sw = document.createElement('div'); sw.className='swatch'; sw.style.background=sub.color;
+    const label = document.createElement('span'); label.textContent = sub.name;
+    const x = document.createElement('span'); x.className='x'; x.textContent='✕';
+    x.onclick=()=>{
+      state.subjects = state.subjects.filter(s=>s.id!==sub.id);
+      state.allocations = state.allocations.filter(a=>a.subjectId!==sub.id);
+      render();
+    };
+    chip.appendChild(sw); chip.appendChild(label); chip.appendChild(x);
+    list.appendChild(chip);
+  });
+  root.appendChild(list);
+
+  nav(root, ()=>{state.page=1;render();}, ()=>{
+    if(state.subjects.length===0){ alert('Yoo xiqqaate barnoota tokko galchaa.'); return; }
+    state.page=3; render();
+  });
+}
+
+/* ================== PAGE 3: Teachers ================== */
+function page3(root){
+  const t = document.createElement('h2'); t.className='page-title'; t.textContent='Fuula 3: Barsiisota';
+  const s = document.createElement('p'); s.className='page-sub'; s.textContent='Maqaa barsiisotaa fi koodii isaanii galchaa.';
+  root.appendChild(t); root.appendChild(s);
+
+  const row = document.createElement('div'); row.className='row';
+  let nName='', nCode='';
+  row.appendChild(floatingField('Maqaa Guutuu Barsiisaa', '', v=>nName=v));
+  row.appendChild(floatingField('Koodii (fkn B01)', '', v=>nCode=v));
+  const addBtn = document.createElement('button'); addBtn.className='btn btn-accent'; addBtn.textContent='Dabali';
+  addBtn.style.height='52px'; addBtn.style.alignSelf='flex-start';
+  addBtn.onclick=()=>{
+    if(!nName.trim()) return;
+    const code = nCode.trim() || ('B' + String(state.teachers.length+1).padStart(2,'0'));
+    state.teachers.push({id:uid(), name:nName.trim(), code});
+    render();
+  };
+  row.appendChild(addBtn);
+  root.appendChild(row);
+
+  const list = document.createElement('div'); list.className='chip-list';
+  state.teachers.forEach(te=>{
+    const chip = document.createElement('div'); chip.className='chip';
+    const label = document.createElement('span'); label.textContent = te.name + ' (' + te.code + ')';
+    const x = document.createElement('span'); x.className='x'; x.textContent='✕';
+    x.onclick=()=>{
+      state.teachers = state.teachers.filter(x2=>x2.id!==te.id);
+      state.allocations = state.allocations.filter(a=>a.teacherId!==te.id);
+      render();
+    };
+    chip.appendChild(label); chip.appendChild(x);
+    list.appendChild(chip);
+  });
+  root.appendChild(list);
+
+  nav(root, ()=>{state.page=2;render();}, ()=>{
+    if(state.teachers.length===0){ alert('Yoo xiqqaate barsiisaa tokko galchaa.'); return; }
+    state.page=4; render();
+  });
+}
+
+/* ================== PAGE 4: Classes ================== */
+function page4(root){
+  const t = document.createElement('h2'); t.className='page-title'; t.textContent='Fuula 4: Kutaalee';
+  const s = document.createElement('p'); s.className='page-sub'; s.textContent='Kutaalee mana barumsichaa galchaa (fkn Kutaa 1A, 1B...).';
+  root.appendChild(t); root.appendChild(s);
+
+  const row = document.createElement('div'); row.className='row';
+  let nName='';
+  row.appendChild(floatingField('Maqaa Kutaa (fkn Kutaa 1A)', '', v=>nName=v));
+  const addBtn = document.createElement('button'); addBtn.className='btn btn-accent'; addBtn.textContent='Dabali';
+  addBtn.style.height='52px'; addBtn.style.alignSelf='flex-start';
+  addBtn.onclick=()=>{
+    if(!nName.trim()) return;
+    state.classes.push({id:uid(), name:nName.trim()});
+    render();
+  };
+  row.appendChild(addBtn);
+  root.appendChild(row);
+
+  const list = document.createElement('div'); list.className='chip-list';
+  state.classes.forEach(c=>{
+    const chip = document.createElement('div'); chip.className='chip';
+    const label = document.createElement('span'); label.textContent = c.name;
+    const x = document.createElement('span'); x.className='x'; x.textContent='✕';
+    x.onclick=()=>{
+      state.classes = state.classes.filter(x2=>x2.id!==c.id);
+      state.allocations = state.allocations.filter(a=>a.classId!==c.id);
+      render();
+    };
+    chip.appendChild(label); chip.appendChild(x);
+    list.appendChild(chip);
+  });
+  root.appendChild(list);
+
+  nav(root, ()=>{state.page=3;render();}, ()=>{
+    if(state.classes.length===0){ alert('Yoo xiqqaate kutaa tokko galchaa.'); return; }
+    state.page=5; render();
+  });
+}
+
+/* ================== PAGE 5: Allocation (accordion, one teacher at a time) ================== */
+function page5(root){
+  const t = document.createElement('h2'); t.className='page-title'; t.textContent='Fuula 5: Ramaddii Wayitii';
+  const s = document.createElement('p'); s.className='page-sub'; s.textContent='Barsiisaa tokko filadhaa, ramaddii isaa hunda xumuraa, "Xumuri" jedhaa cufaa, ergasii kan itti aanu itti fufaa.';
+  root.appendChild(t); root.appendChild(s);
+
+  if(state.teachers.length===0 || state.subjects.length===0 || state.classes.length===0){
+    const warn = document.createElement('div'); warn.className='warn-box';
+    warn.textContent = 'Barsiisaa, barnoota, fi kutaa dursaa galchaa.';
+    root.appendChild(warn);
+  }
+
+  state.teachers.forEach(teacher=>{
+    const isOpen = state.openTeacherId === teacher.id;
+    const card = document.createElement('div');
+    card.className = 'teacher-card' + (isOpen?' open':'');
+
+    const summary = document.createElement('div'); summary.className='teacher-summary';
+    const left = document.createElement('div');
+    const nameSpan = document.createElement('span'); nameSpan.className='name'; nameSpan.textContent = teacher.name;
+    const codeSpan = document.createElement('span'); codeSpan.className='code'; codeSpan.textContent = teacher.code;
+    left.appendChild(nameSpan); left.appendChild(codeSpan);
+
+    const right = document.createElement('div');
+    right.style.display='flex'; right.style.alignItems='center'; right.style.gap='10px';
+    const total = teacherTotal(teacher.id);
+    const badge = document.createElement('span'); badge.className='badge'+(total===0?' zero':''); badge.textContent = total + ' wayitii/torbee';
+    const editBtn = document.createElement('button');
+    editBtn.className='btn btn-sm ' + (isOpen ? 'btn-outline' : 'btn-accent');
+    editBtn.textContent = isOpen ? 'Xumuri' : 'EDIT';
+    editBtn.onclick = (e)=>{
+      e.stopPropagation();
+      state.openTeacherId = isOpen ? null : teacher.id;
+      render();
+    };
+    right.appendChild(badge); right.appendChild(editBtn);
+
+    summary.appendChild(left); summary.appendChild(right);
+    summary.onclick = ()=>{ state.openTeacherId = isOpen ? null : teacher.id; render(); };
+    card.appendChild(summary);
+
+    if(isOpen){
+      const body = document.createElement('div'); body.className='teacher-body';
+
+      // add-allocation mini form
+      const formRow = document.createElement('div'); formRow.className='row'; formRow.style.marginTop='10px';
+      let selSubject = state.subjects[0]?.id;
+      let selClass = state.classes[0]?.id;
+      let perWeek = 1;
+
+      formRow.appendChild(boxedSelect('Barnoota', selSubject, state.subjects.map(sb=>({value:sb.id,label:sb.name})), v=>selSubject=v));
+      formRow.appendChild(boxedSelect('Kutaa', selClass, state.classes.map(cl=>({value:cl.id,label:cl.name})), v=>selClass=v));
+      const pwWrap = document.createElement('div'); pwWrap.className='field-wrap filled';
+      const pwInput = document.createElement('input'); pwInput.type='number'; pwInput.min='1'; pwInput.max='40'; pwInput.value='1';
+      pwInput.oninput = e=>perWeek=Number(e.target.value)||1;
+      const pwLab = document.createElement('label'); pwLab.textContent='Wayitii/Torbee';
+      pwWrap.appendChild(pwInput); pwWrap.appendChild(pwLab);
+      formRow.appendChild(pwWrap);
+      body.appendChild(formRow);
+
+      const addAllocBtn = document.createElement('button');
+      addAllocBtn.className='btn btn-accent btn-sm';
+      addAllocBtn.textContent='Ramaddii Dabali';
+      addAllocBtn.onclick = ()=>{
+        if(!selSubject || !selClass) return;
+        state.allocations.push({id:uid(), teacherId:teacher.id, subjectId:selSubject, classId:selClass, perWeek});
+        render();
+      };
+      body.appendChild(addAllocBtn);
+
+      // existing allocations for this teacher
+      const myAllocs = state.allocations.filter(a=>a.teacherId===teacher.id);
+      if(myAllocs.length){
+        const listWrap = document.createElement('div'); listWrap.style.marginTop='14px';
+        myAllocs.forEach(a=>{
+          const sub = subjectById(a.subjectId), cls = classById(a.classId);
+          const r = document.createElement('div'); r.className='alloc-row';
+          const sw = document.createElement('div'); sw.className='swatch'; sw.style.background = sub?sub.color:'#ccc';
+          const grow = document.createElement('div'); grow.className='grow';
+          grow.textContent = (sub?sub.name:'?') + ' — ' + (cls?cls.name:'?') + ' — ' + a.perWeek + ' wayitii/torbee';
+          const del = document.createElement('span'); del.className='x'; del.textContent='✕'; del.style.cursor='pointer';
+          del.onclick = ()=>{ state.allocations = state.allocations.filter(x=>x.id!==a.id); render(); };
+          r.appendChild(sw); r.appendChild(grow); r.appendChild(del);
+          listWrap.appendChild(r);
+        });
+        body.appendChild(listWrap);
+      }
+      const totalLine = document.createElement('div'); totalLine.className='alloc-total-line';
+      totalLine.textContent = 'Waliigala: ' + teacherTotal(teacher.id) + ' wayitii/torbee';
+      body.appendChild(totalLine);
+
+      const doneBtn = document.createElement('button');
+      doneBtn.className='btn btn-primary btn-sm'; doneBtn.style.marginTop='14px';
+      doneBtn.textContent='Xumuri fi Itti Aanutti Deemi';
+      doneBtn.onclick = ()=>{
+        const idx = state.teachers.findIndex(x=>x.id===teacher.id);
+        const nextTeacher = state.teachers[idx+1];
+        state.openTeacherId = nextTeacher ? nextTeacher.id : null;
+        render();
+      };
+      body.appendChild(doneBtn);
+
+      card.appendChild(body);
+    }
+
+    root.appendChild(card);
+  });
+
+  nav(root, ()=>{state.page=4;render();}, ()=>{
+    if(state.allocations.length===0){ alert('Yoo xiqqaate ramaddii tokko galchaa.'); return; }
+    state.page=6; state.schedule = generateSchedule(); render();
+  }, 'Sagantaa Uumi →');
+}
+
+/* ================== SCHEDULING ALGORITHM ================== */
+// Builds: for each class, a grid[day][period] = {subjectId, teacherId} or null
+// Spreads repeated occurrences of the same subject/teacher across DIFFERENT period slots
+// and different days, instead of clustering at the same period every day.
+function generateSchedule(){
+  const days = state.school.days;
+  const periods = state.school.periods;
+
+  const classGrids = {}; // classId -> [day][period] = null or {subjectId,teacherId}
+  state.classes.forEach(c=>{
+    classGrids[c.id] = Array.from({length:days}, ()=>Array(periods).fill(null));
+  });
+  // teacher busy tracker: teacherBusy[teacherId] = Set of "day-period"
+  const teacherBusy = {};
+  state.teachers.forEach(t=> teacherBusy[t.id] = new Set());
+
+  // Expand allocations into unit jobs, grouped per class, interleaved across subjects
+  // so we don't fill one subject's full quota before moving to the next (this alone
+  // helps avoid the same subject dominating the same period slot).
+  const unplaced = [];
+
+  state.classes.forEach(cls=>{
+    const classAllocs = state.allocations.filter(a=>a.classId===cls.id);
+    // Build round-robin queue: repeat each alloc's id 'perWeek' times, interleaved
+    const queues = classAllocs.map(a=>({...a, remaining:a.perWeek}));
+    // track which period-slots (0..periods-1) have already been used for a given subject in this class
+    const subjectSlotsUsed = {}; // subjectId -> Set of period index
+    classAllocs.forEach(a=> subjectSlotsUsed[a.subjectId] = subjectSlotsUsed[a.subjectId] || new Set());
+
+    // rotating pointer so we don't always start filling from period 0
+    let rotatePtr = 0;
+
+    let anyLeft = true;
+    while(anyLeft){
+      anyLeft = false;
+      for(const job of queues){
+        if(job.remaining <= 0) continue;
+        anyLeft = true;
+
+        const grid = classGrids[cls.id];
+        const usedSlots = subjectSlotsUsed[job.subjectId];
+
+        // Build candidate list of (day, period) ordered to prefer:
+        // 1) a period slot NOT yet used by this subject in this class (spreads across periods)
+        // 2) a day that doesn't already have this subject
+        // 3) rotating start point so different subjects don't all pile on period 0 first
+        let placed = false;
+        const dayOrder = [...Array(days).keys()].sort((d1,d2)=>{
+          const c1 = grid[d1].filter(cell=>cell && cell.subjectId===job.subjectId).length;
+          const c2 = grid[d2].filter(cell=>cell && cell.subjectId===job.subjectId).length;
+          return c1 - c2; // prefer days with fewer occurrences of this subject already
+        });
+
+        for(const d of dayOrder){
+          if(placed) break;
+          // period candidates: unused-by-subject slots first (rotated), then any free slot
+          const periodOrder = [...Array(periods).keys()]
+            .map((_,i)=>(i+rotatePtr)%periods)
+            .sort((p1,p2)=>{
+              const p1Used = usedSlots.has(p1) ? 1 : 0;
+              const p2Used = usedSlots.has(p2) ? 1 : 0;
+              return p1Used - p2Used;
+            });
+          for(const p of periodOrder){
+            if(grid[d][p] !== null) continue; // class slot taken
+            const key = d+'-'+p;
+            if(teacherBusy[job.teacherId].has(key)) continue; // teacher busy elsewhere
+            // place it
+            grid[d][p] = { subjectId: job.subjectId, teacherId: job.teacherId };
+            teacherBusy[job.teacherId].add(key);
+            usedSlots.add(p);
+            rotatePtr = (rotatePtr+1) % periods;
+            job.remaining -= 1;
+            placed = true;
+            break;
+          }
+        }
+        if(!placed){
+          // couldn't place this unit anywhere
+          job.remaining -= 1; // drop one unit, count as unplaced, avoid infinite loop
+          unplaced.push({classId:cls.id, teacherId:job.teacherId, subjectId:job.subjectId});
+        }
+      }
+    }
+  });
+
+  return { classGrids, unplaced, days, periods };
+}
+
+/* ================== PAGE 6: Generate & View ================== */
+function page6(root){
+  const t = document.createElement('h2'); t.className='page-title'; t.textContent='Fuula 6: Sagantaa';
+  const s = document.createElement('p'); s.className='page-sub'; s.textContent='Sagantaa uumame ilaalaa, print godhaa.';
+  root.appendChild(t); root.appendChild(s);
+
+  const regenRow = document.createElement('div'); regenRow.className='no-print';
+  regenRow.style.marginBottom='14px';
+  const regenBtn = document.createElement('button'); regenBtn.className='btn btn-outline btn-sm';
+  regenBtn.textContent='Ammas Uumi (Regenerate)';
+  regenBtn.onclick = ()=>{ state.schedule = generateSchedule(); render(); };
+  regenRow.appendChild(regenBtn);
+  root.appendChild(regenRow);
+
+  if(!state.schedule) state.schedule = generateSchedule();
+  const sched = state.schedule;
+
+  if(sched.unplaced.length){
+    const warn = document.createElement('div'); warn.className='warn-box no-print';
+    warn.textContent = 'Xiyyeeffannoo: wayitii ' + sched.unplaced.length + ' ramadamuu hin dandeenye (walitti bu\u2019iinsa sa\u2019aatii/barsiisaa irraa kan ka\u2019e). Ramaddii keessan deebi\u2019aa ilaalaa.';
+    root.appendChild(warn);
+  }
+
+  // view tabs
+  const tabs = document.createElement('div'); tabs.className='view-tabs no-print';
+  [['kutaa','Kutaadhaan'],['barsiisaa','Barsiisaadhaan'],['waliigalaa','Waliigalaa']].forEach(([key,label])=>{
+    const tb = document.createElement('div');
+    tb.className='view-tab' + (state.scheduleView===key?' active':'');
+    tb.textContent=label;
+    tb.onclick=()=>{ state.scheduleView=key; render(); };
+    tabs.appendChild(tb);
+  });
+  root.appendChild(tabs);
+
+  const printBtn = document.createElement('button'); printBtn.className='btn btn-primary btn-sm no-print';
+  printBtn.style.marginBottom='16px'; printBtn.textContent='Print';
+  printBtn.onclick=()=>window.print();
+  root.appendChild(printBtn);
+
+  if(state.scheduleView==='kutaa') renderByClass(root, sched);
+  else if(state.scheduleView==='barsiisaa') renderByTeacher(root, sched);
+  else renderOverall(root, sched);
+
+  // legend
+  const legend = document.createElement('div'); legend.className='legend';
+  state.subjects.forEach(sb=>{
+    const item = document.createElement('div'); item.className='item';
+    const sw = document.createElement('div'); sw.className='sw'; sw.style.background=sb.color;
+    const lab = document.createElement('span'); lab.textContent = sb.name;
+    item.appendChild(sw); item.appendChild(lab);
+    legend.appendChild(item);
+  });
+  root.appendChild(legend);
+
+  const footer = document.createElement('div'); footer.className='print-footer';
+  footer.textContent = 'Adonai Timetable';
+  root.appendChild(footer);
+
+  nav(root, ()=>{state.page=5;render();}, ()=>{}, 'Xumurame');
+  root.querySelector('.nav-row .btn-primary').disabled = true;
+}
+
+function periodColumns(){
+  // returns array like [{type:'period',index:0},{type:'break'},...] rendering order with break inserted
+  const periods = state.school.periods;
+  const bAfter = breakAfter();
+  const cols = [];
+  for(let p=0;p<periods;p++){
+    cols.push({type:'period', index:p});
+    if(p+1===bAfter) cols.push({type:'break', label:'Boqonnaa'});
+  }
+  return cols;
+}
+
+// Builds a two-row <thead> block: row1 = leading labels (rowspan 2) + period numbers (+ break, rowspan 2),
+// row2 = time range beneath each period number. Returns {cols, rows:[tr1,tr2]}.
+function buildScheduleHeader(leadingLabels){
+  const cols = periodColumns();
+  const row1 = document.createElement('tr');
+  const row2 = document.createElement('tr');
+  leadingLabels.forEach(lbl=>{
+    const th = document.createElement('th'); th.textContent = lbl; th.rowSpan = 2;
+    row1.appendChild(th);
+  });
+  cols.forEach(col=>{
+    if(col.type==='break'){
+      const th = document.createElement('th'); th.textContent = col.label; th.rowSpan = 2;
+      th.classList.add('break-col');
+      row1.appendChild(th);
+    } else {
+      const th1 = document.createElement('th'); th1.textContent = String(col.index+1);
+      row1.appendChild(th1);
+      const th2 = document.createElement('th'); th2.textContent = periodTimeLabel(col.index) || '—';
+      th2.style.fontWeight = '400'; th2.style.fontSize = '10.5px'; th2.style.opacity='.9';
+      row2.appendChild(th2);
+    }
+  });
+  return { cols, rows:[row1, row2] };
+}
+
+function cellContent(cellData){
+  const td = document.createElement('td');
+  if(!cellData){
+    td.innerHTML = '<div class="cell-empty">—</div>';
+    return td;
+  }
+  const sub = subjectById(cellData.subjectId);
+  const tea = teacherById(cellData.teacherId);
+  const block = document.createElement('div'); block.className='cell-block';
+  block.style.background = sub ? sub.color+'22' : '#eee';
+  block.style.borderLeft = '4px solid ' + (sub?sub.color:'#ccc');
+  const subjEl = document.createElement('div'); subjEl.className='cell-subj'; subjEl.textContent = sub?sub.name:'?';
+  const teaEl = document.createElement('div'); teaEl.className='cell-teacher'; teaEl.textContent = tea?tea.code:'?';
+  block.appendChild(subjEl); block.appendChild(teaEl);
+  td.appendChild(block);
+  return td;
+}
+
+function renderByClass(root, sched){
+  state.classes.forEach(cls=>{
+    const wrap = document.createElement('div'); wrap.className='schedule-block'; wrap.style.marginBottom='30px';
+    const h = document.createElement('h3'); h.textContent = cls.name; h.style.color='var(--board-green-dark)';
+    wrap.appendChild(h);
+    const table = document.createElement('table');
+    const { cols, rows } = buildScheduleHeader(['Guyyaa']);
+    table.appendChild(rows[0]); table.appendChild(rows[1]);
+    dayNames().forEach((dn, d)=>{
+      const tr = document.createElement('tr');
+      const dtd = document.createElement('td'); dtd.className='dayhead'; dtd.textContent=dn;
+      tr.appendChild(dtd);
+      cols.forEach(col=>{
+        if(col.type==='break'){
+          const btd = document.createElement('td'); btd.className='break-col'; btd.textContent='Boqonnaa';
+          tr.appendChild(btd);
+        } else {
+          const cellData = sched.classGrids[cls.id][d][col.index];
+          tr.appendChild(cellContent(cellData));
+        }
+      });
+      table.appendChild(tr);
+    });
+    wrap.appendChild(table);
+    root.appendChild(wrap);
+  });
+}
+
+function renderByTeacher(root, sched){
+  state.teachers.forEach(teacher=>{
+    const wrap = document.createElement('div'); wrap.className='schedule-block'; wrap.style.marginBottom='30px';
+    const h = document.createElement('h3'); h.style.color='var(--board-green-dark)';
+    h.textContent = teacher.name + ' (' + teacher.code + ')';
+    wrap.appendChild(h);
+    const table = document.createElement('table');
+    const { cols, rows } = buildScheduleHeader(['Guyyaa']);
+    table.appendChild(rows[0]); table.appendChild(rows[1]);
+    dayNames().forEach((dn, d)=>{
+      const tr = document.createElement('tr');
+      const dtd = document.createElement('td'); dtd.className='dayhead'; dtd.textContent=dn;
+      tr.appendChild(dtd);
+      cols.forEach(col=>{
+        if(col.type==='break'){
+          const btd = document.createElement('td'); btd.className='break-col'; btd.textContent='Boqonnaa';
+          tr.appendChild(btd);
+        } else {
+          // find this teacher's class/subject at this day/period across all classes
+          let found = null, foundClass=null;
+          for(const cls of state.classes){
+            const cell = sched.classGrids[cls.id][d][col.index];
+            if(cell && cell.teacherId===teacher.id){ found=cell; foundClass=cls; break; }
+          }
+          if(found){
+            const td = document.createElement('td');
+            const sub = subjectById(found.subjectId);
+            const block = document.createElement('div'); block.className='cell-block';
+            block.style.background = sub ? sub.color+'22' : '#eee';
+            block.style.borderLeft = '4px solid ' + (sub?sub.color:'#ccc');
+            const subjEl = document.createElement('div'); subjEl.className='cell-subj'; subjEl.textContent = sub?sub.name:'?';
+            const clsEl = document.createElement('div'); clsEl.className='cell-teacher'; clsEl.textContent = foundClass.name;
+            block.appendChild(subjEl); block.appendChild(clsEl);
+            td.appendChild(block);
+            tr.appendChild(td);
+          } else {
+            tr.appendChild(cellContent(null));
+          }
+        }
+      });
+      table.appendChild(tr);
+    });
+    wrap.appendChild(table);
+    root.appendChild(wrap);
+  });
+}
+
+function renderOverall(root, sched){
+  // ONE unified table: rows grouped by day, then by class; columns = periods (+break)
+  const wrap = document.createElement('div'); wrap.className='schedule-block';
+  const table = document.createElement('table');
+  const { cols, rows } = buildScheduleHeader(['Guyyaa','Kutaa']);
+  table.appendChild(rows[0]); table.appendChild(rows[1]);
+
+  dayNames().forEach((dn, d)=>{
+    state.classes.forEach((cls, ci)=>{
+      const tr = document.createElement('tr');
+      if(ci===0){
+        const dtd = document.createElement('td'); dtd.className='dayhead';
+        dtd.textContent = dn; dtd.rowSpan = state.classes.length;
+        tr.appendChild(dtd);
+      }
+      const ctd = document.createElement('td'); ctd.style.fontWeight='600'; ctd.textContent = cls.name;
+      tr.appendChild(ctd);
+      cols.forEach(col=>{
+        if(col.type==='break'){
+          const btd = document.createElement('td'); btd.className='break-col'; btd.textContent='Boqonnaa';
+          tr.appendChild(btd);
+        } else {
+          const cellData = sched.classGrids[cls.id][d][col.index];
+          tr.appendChild(cellContent(cellData));
+        }
+      });
+      table.appendChild(tr);
+    });
+  });
+  wrap.appendChild(table);
+  root.appendChild(wrap);
+}
+
+/* ================== INIT ================== */
+render();
+</script>
+</body>
+</html>
