@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adonai Timetable</title>
+<style>
+:root{
+  --chalk-green:#2f4a3e;
+  --chalk-green-dark:#213931;
+  --chalk-green-light:#3d6152;
+  --cream:#fbf6ea;
+  --cream-dark:#f3ede0;
+  --gold:#c9a24b;
+  --gold-light:#e0c076;
+  --text-dark:#2b2b26;
+  --muted:#6b6b5e;
+  --danger:#a8493a;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:'Trebuchet MS','Segoe UI',ui-sans-serif,system-ui,sans-serif;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(255,255,255,0.03) 0, transparent 45%),
+    linear-gradient(180deg,var(--chalk-green-dark),var(--chalk-green) 40%,var(--chalk-green-dark));
+  color:var(--text-dark);
+  min-height:100vh;
+}
+.wrap{max-width:900px;margin:0 auto;padding:28px 18px 60px;}
+
+/* ---------- Header / placard ---------- */
+.placard{
+  background:var(--cream);
+  border:2px solid var(--gold);
+  border-radius:8px;
+  box-shadow:0 10px 24px rgba(0,0,0,0.35);
+  padding:18px 30px;
+  margin:0 auto 22px;
+  max-width:420px;
+  text-align:center;
+  position:relative;
+  transform:rotate(-0.6deg);
+}
+.placard .pin{
+  position:absolute;top:8px;width:9px;height:9px;border-radius:50%;
+  background:var(--gold);box-shadow:0 1px 3px rgba(0,0,0,0.4);
+}
+.placard .pin.l{left:14px;}
+.placard .pin.r{right:14px;}
+.wordmark{
+  font-family:Georgia,'Times New Roman',serif;
+  font-size:34px;font-weight:700;color:var(--chalk-green-dark);letter-spacing:0.5px;line-height:1;
+}
+.wordcap{
+  margin-top:4px;font-size:11.5px;letter-spacing:5px;color:var(--gold);
+  font-weight:700;text-transform:uppercase;
+}
+
+.dots{display:flex;justify-content:center;gap:9px;margin-bottom:26px;}
+.dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.25);transition:all .25s;}
+.dot.active{background:var(--gold);transform:scale(1.25);}
+.dot.done{background:var(--gold-light);}
+
+/* ---------- Card ---------- */
+.card{
+  background:var(--cream);
+  border-radius:14px;
+  box-shadow:0 18px 40px rgba(0,0,0,0.35);
+  padding:32px 30px 26px;
+  position:relative;
+}
+.card h2{
+  margin:0 0 4px;font-family:Georgia,serif;color:var(--chalk-green-dark);font-size:22px;
+}
+.card .step-tag{
+  font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:8px;
+}
+.card .hint{color:var(--muted);font-size:13.5px;margin:0 0 20px;line-height:1.5;}
+
+/* ---------- Floating field ---------- */
+.field-box{
+  position:relative;
+  border:2px solid #d8d0bd;
+  border-radius:10px;
+  background:#fff;
+  margin-bottom:18px;
+  transition:border-color .25s, box-shadow .25s, background .25s;
+  padding:14px 14px 6px;
+}
+.field-box.filled, .field-box:focus-within{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(201,162,75,0.18);
+  background:#fffdf7;
+}
+.field-box label{
+  position:absolute; left:14px; top:16px;
+  font-size:14.5px; color:var(--muted); pointer-events:none;
+  transition:all .22s ease; background:transparent; padding:0 4px;
+}
+.field-box.filled label, .field-box:focus-within label{
+  top:-9px; left:10px; font-size:11px; color:var(--chalk-green-dark); font-weight:700;
+  background:#fffdf7; letter-spacing:0.5px;
+}
+.field-box input, .field-box select{
+  width:100%; border:none; outline:none; background:transparent;
+  font-size:15.5px; padding:6px 2px 4px; color:var(--text-dark); font-family:inherit;
+}
+.field-box select{appearance:none; cursor:pointer;}
+.field-box .chev{position:absolute;right:14px;top:20px;color:var(--muted);pointer-events:none;font-size:12px;}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:520px){.row2{grid-template-columns:1fr;}}
+
+/* ---------- Buttons ---------- */
+.btn{
+  border:none;border-radius:9px;padding:12px 22px;font-size:14.5px;font-weight:700;
+  cursor:pointer;transition:transform .15s, box-shadow .15s; letter-spacing:0.3px;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--chalk-green);color:#fff;box-shadow:0 6px 14px rgba(47,74,62,0.35);}
+.btn-primary:hover{background:var(--chalk-green-light);}
+.btn-primary:disabled{background:#a9b3ae;cursor:not-allowed;box-shadow:none;}
+.btn-ghost{background:transparent;color:var(--chalk-green-dark);border:1.5px solid #cfc6ae;}
+.btn-ghost:hover{background:#f1ead9;}
+.btn-danger{background:transparent;color:var(--danger);border:none;font-size:13px;padding:6px 8px;}
+.btn-danger:hover{text-decoration:underline;}
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:26px;}
+
+/* ---------- List items (subjects/teachers/classes) ---------- */
+.add-row{display:flex;gap:10px;margin-bottom:16px;}
+.add-row .field-box{flex:1;margin-bottom:0;}
+.chip-list{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
+.chip{
+  display:flex;align-items:center;gap:8px;
+  background:#fff;border:1.5px solid #e2dac4;border-radius:30px;
+  padding:7px 8px 7px 14px;font-size:14px;
+}
+.chip .swatch{width:11px;height:11px;border-radius:50%;flex:none;}
+.chip button{
+  border:none;background:#f1ead9;color:var(--muted);border-radius:50%;
+  width:20px;height:20px;cursor:pointer;font-size:12px;line-height:1;
+}
+.chip button:hover{background:#e4d9bc;color:var(--danger);}
+.empty-note{color:var(--muted);font-size:13.5px;font-style:italic;padding:10px 0;}
+
+/* ---------- Allocation table ---------- */
+.alloc-form{
+  background:#fff;border:1.5px solid #e2dac4;border-radius:10px;padding:16px;margin-bottom:18px;
+}
+.alloc-form .row2{grid-template-columns:1fr 1fr 1fr;}
+@media(max-width:640px){.alloc-form .row2{grid-template-columns:1fr;}}
+.alloc-list{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:18px;}
+.alloc-list th{text-align:left;color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:6px 8px;border-bottom:2px solid #e2dac4;}
+.alloc-list td{padding:8px;border-bottom:1px solid #efe9d9;}
+.subj-pill{display:inline-flex;align-items:center;gap:6px;font-weight:600;}
+.subj-pill .swatch{width:9px;height:9px;border-radius:50%;}
+
+.teacher-loads{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;}
+.load-card{
+  background:#fff;border:1.5px solid #e2dac4;border-radius:10px;padding:10px 14px;min-width:150px;
+}
+.load-card .name{font-weight:700;font-size:13.5px;color:var(--chalk-green-dark);}
+.load-card .num{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.load-card .num b{color:var(--text-dark);}
+.load-card.over{border-color:var(--danger);}
+.load-card.over .num b{color:var(--danger);}
+
+.warn-box{
+  background:#fbeee9;border:1.5px solid var(--danger);color:#7a2e22;border-radius:10px;
+  padding:10px 14px;font-size:13.5px;margin:14px 0;
+}
+
+/* ---------- Page 6: schedule ---------- */
+.view-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.view-tab{
+  border:1.5px solid #cfc6ae;background:transparent;border-radius:20px;padding:8px 16px;
+  font-size:13.5px;font-weight:600;cursor:pointer;color:var(--chalk-green-dark);
+}
+.view-tab.active{background:var(--chalk-green);color:#fff;border-color:var(--chalk-green);}
+.sel-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.sel-row select{padding:8px 10px;border-radius:8px;border:1.5px solid #cfc6ae;font-size:13.5px;background:#fff;}
+
+table.schedule{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;}
+table.schedule th{background:var(--chalk-green);color:#fff;padding:8px 6px;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;}
+table.schedule td{border:1px solid #e6e0cf;padding:6px;text-align:center;vertical-align:middle;height:46px;}
+table.schedule td.slot-filled{font-size:11.5px;}
+table.schedule td .s-subj{font-weight:700;}
+table.schedule td .s-sub{color:var(--muted);font-size:10.5px;}
+table.schedule .period-col{background:#f6f1e4;font-weight:700;color:var(--chalk-green-dark);width:50px;}
+
+.print-footer{display:none;}
+.print-btn-row{display:flex;justify-content:flex-end;margin-bottom:12px;}
+
+@media print{
+  body *{visibility:hidden;}
+  #schedule-print-area, #schedule-print-area *{visibility:visible;}
+  #schedule-print-area{position:absolute;left:0;top:0;width:100%;}
+  .print-footer{display:block;text-align:center;color:#888;font-size:11px;margin-top:14px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="placard">
+    <span class="pin l"></span><span class="pin r"></span>
+    <div class="wordmark">Adonai</div>
+    <div class="wordcap">Timetable</div>
+  </div>
+  <div class="dots" id="dots"></div>
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+/* ================= STATE ================= */
+const COLORS = ["#c0533e","#3d7a5c","#3a6ea5","#b8862f","#7a5aa8","#c0507e",
+                 "#4c8577","#a8763d","#5d6fb0","#8a9a3b","#b04f6b","#3e8f9e"];
+let uid = 1;
+const nextId = () => "id" + (uid++);
+
+let state = {
+  page: 1,
+  school: { name:"", year:"", days:5, periods:6 },
+  subjects: [],
+  teachers: [],
+  classes: [],
+  allocations: [],
+  schedule: null,
+  view: "class",
+  viewClassId: null,
+  viewTeacherId: null,
+};
+
+/* ================= HELPERS ================= */
+function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
+function fieldBox(id,label,value,type='text'){
+  const filled = value !== "" && value !== undefined && value !== null;
+  return `<div class="field-box ${filled?'filled':''}" data-fieldwrap="${id}">
+    <label for="${id}">${label}</label>
+    <input type="${type}" id="${id}" value="${value ?? ''}" oninput="onFieldInput('${id}')">
+  </div>`;
+}
+function boxedSelect(id,label,options,value){
+  const filled = value !== "" && value !== undefined && value !== null;
+  const opts = options.map(o=>`<option value="${o.v}" ${String(o.v)===String(value)?'selected':''}>${o.l}</option>`).join('');
+  return `<div class="field-box ${filled?'filled':''}" data-fieldwrap="${id}">
+    <label for="${id}">${label}</label>
+    <select id="${id}" onchange="onFieldInput('${id}')">${opts}</select>
+    <span class="chev">▾</span>
+  </div>`;
+}
+function onFieldInput(id){
+  const wrap = document.querySelector(`[data-fieldwrap="${id}"]`);
+  const input = document.getElementById(id);
+  if(input.value !== ""){ wrap.classList.add('filled'); } else { wrap.classList.remove('filled'); }
+}
+function subjColor(subjectId){
+  const idx = state.subjects.findIndex(s=>s.id===subjectId);
+  return idx>=0 ? COLORS[idx % COLORS.length] : "#999";
+}
+function teacherName(id){ const t=state.teachers.find(t=>t.id===id); return t?t.name:"?"; }
+function subjectName(id){ const s=state.subjects.find(s=>s.id===id); return s?s.name:"?"; }
+function className(id){ const c=state.classes.find(c=>c.id===id); return c?c.name:"?"; }
+
+/* ================= RENDER SHELL ================= */
+function renderDots(){
+  const dots = document.getElementById('dots');
+  dots.innerHTML = "";
+  for(let i=1;i<=6;i++){
+    const d = document.createElement('span');
+    d.className = 'dot' + (i===state.page?' active':(i<state.page?' done':''));
+    dots.appendChild(d);
+  }
+}
+function render(){
+  renderDots();
+  const card = document.getElementById('card');
+  const renderers = {1:renderPage1,2:renderPage2,3:renderPage3,4:renderPage4,5:renderPage5,6:renderPage6};
+  card.innerHTML = renderers[state.page]();
+  afterRender();
+}
+function afterRender(){
+  if(state.page===2) bindSimpleList('subjects','subj');
+  if(state.page===3) bindSimpleList('teachers','teach');
+  if(state.page===4) bindSimpleList('classes','cls');
+}
+function goTo(p){ state.page = p; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+
+/* ================= PAGE 1 ================= */
+function renderPage1(){
+  return `
+    <div class="step-tag">Tarkaanfii 1 / 6</div>
+    <h2>Odeeffannoo Mana Barumsaa</h2>
+    <p class="hint">Maqaa mana barumsaa keessanii fi bu'uura sagantaa (guyyoota torbanii, wayitii guyyaatti) galchaa.</p>
+    ${fieldBox('sch-name','Maqaa Mana Barumsaa',state.school.name)}
+    ${fieldBox('sch-year','Bara Barnootaa (fkn 2018)',state.school.year)}
+    <div class="row2">
+      ${boxedSelect('sch-days','Guyyoota Torbanitti',[{v:5,l:'5 Guyyoota'},{v:6,l:'6 Guyyoota'},{v:7,l:'7 Guyyoota'}],state.school.days)}
+      ${boxedSelect('sch-periods','Wayitii Guyyaatti',[2,3,4,5,6,7,8,9,10].map(n=>({v:n,l:n+' Wayitii'})),state.school.periods)}
+    </div>
+    <div class="nav-row">
+      <span></span>
+      <button class="btn btn-primary" onclick="submitPage1()">Itti Fufi →</button>
+    </div>
+  `;
+}
+function submitPage1(){
+  const name = document.getElementById('sch-name').value.trim();
+  const year = document.getElementById('sch-year').value.trim();
+  if(!name){ alert("Maqaa mana barumsaa galchaa."); return; }
+  state.school.name = name;
+  state.school.year = year;
+  state.school.days = parseInt(document.getElementById('sch-days').value);
+  state.school.periods = parseInt(document.getElementById('sch-periods').value);
+  goTo(2);
+}
+
+/* ================= GENERIC SIMPLE LIST (subjects/teachers/classes) ================= */
+function renderSimpleList(cfg){
+  const items = state[cfg.key];
+  const chips = items.length ? `<div class="chip-list">${items.map(it=>`
+    <span class="chip">${cfg.showSwatch?`<span class="swatch" style="background:${subjColor(it.id)}"></span>`:''}${it.name}
+      <button onclick="removeItem('${cfg.key}','${it.id}')">✕</button>
+    </span>`).join('')}</div>` : `<p class="empty-note">${cfg.emptyText}</p>`;
+  return `
+    <div class="step-tag">Tarkaanfii ${cfg.stepNo} / 6</div>
+    <h2>${cfg.title}</h2>
+    <p class="hint">${cfg.hint}</p>
+    <div class="add-row">
+      <div class="field-box" data-fieldwrap="new-${cfg.prefix}">
+        <label for="new-${cfg.prefix}">${cfg.placeholder}</label>
+        <input id="new-${cfg.prefix}" type="text" onkeydown="if(event.key==='Enter'){event.preventDefault();addSimpleItem('${cfg.key}','new-${cfg.prefix}')}">
+      </div>
+      <button class="btn btn-ghost" onclick="addSimpleItem('${cfg.key}','new-${cfg.prefix}')">+ Ida'i</button>
+    </div>
+    ${chips}
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="goTo(${cfg.stepNo-1})">← Duubatti</button>
+      <button class="btn btn-primary" ${items.length===0?'disabled':''} onclick="goTo(${cfg.stepNo+1})">Itti Fufi →</button>
+    </div>
+  `;
+}
+function addSimpleItem(key, inputId){
+  const input = document.getElementById(inputId);
+  const val = input.value.trim();
+  if(!val) return;
+  state[key].push({id: nextId(), name: val});
+  render();
+}
+function removeItem(key, id){
+  state[key] = state[key].filter(it=>it.id!==id);
+  if(key==='teachers') state.allocations = state.allocations.filter(a=>a.teacherId!==id);
+  if(key==='subjects') state.allocations = state.allocations.filter(a=>a.subjectId!==id);
+  if(key==='classes') state.allocations = state.allocations.filter(a=>a.classId!==id);
+  render();
+}
+function bindSimpleList(){ /* no-op, kept for extensibility */ }
+
+function renderPage2(){
+  return renderSimpleList({key:'subjects',stepNo:2,prefix:'subj',showSwatch:true,
+    title:'Gosoota Barnootaa', hint:'Gosa barnoota mana barumsaa keessatti kennamu hunda galchaa. Tokkoon tokkoon isaa halluu addaa ni argata.',
+    placeholder:'Maqaa Gosa Barnootaa', emptyText:'Gosti barnootaa ammatti hin galfamne.'});
+}
+function renderPage3(){
+  return renderSimpleList({key:'teachers',stepNo:3,prefix:'teach',showSwatch:false,
+    title:'Barsiisota', hint:'Maqaa barsiistota mana barumsichaa galchaa.',
+    placeholder:'Maqaa Barsiisaa', emptyText:'Barsiisaan ammatti hin galmoofne.'});
+}
+function renderPage4(){
+  return renderSimpleList({key:'classes',stepNo:4,prefix:'cls',showSwatch:false,
+    title:'Kutaalee', hint:'Kutaalee mana barumsichaa galchaa (fkn Kutaa 1A, 1B, 2A...).',
+    placeholder:'Maqaa Kutaa', emptyText:'Kutaan ammatti hin galmoofne.'});
+}
+
+/* ================= PAGE 5: ALLOCATION ================= */
+function renderPage5(){
+  const {subjects,teachers,classes,allocations} = state;
+  const canAlloc = subjects.length && teachers.length && classes.length;
+  const teacherOpts = teachers.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const subjOpts = subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const classOpts = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+
+  const rows = allocations.map(a=>`
+    <tr>
+      <td>${teacherName(a.teacherId)}</td>
+      <td><span class="subj-pill"><span class="swatch" style="background:${subjColor(a.subjectId)}"></span>${subjectName(a.subjectId)}</span></td>
+      <td>${className(a.classId)}</td>
+      <td>${a.periodsPerWeek} wayitii/torbee</td>
+      <td><button class="btn-danger" onclick="removeAlloc('${a.id}')">Haqi</button></td>
+    </tr>`).join('');
+
+  const loads = teachers.map(t=>{
+    const total = allocations.filter(a=>a.teacherId===t.id).reduce((s,a)=>s+a.periodsPerWeek,0);
+    const max = state.school.days * state.school.periods;
+    return `<div class="load-card ${total>max?'over':''}">
+      <div class="name">${t.name}</div>
+      <div class="num">Waliigala: <b>${total}</b> / ${max} wayitii/torbee</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="step-tag">Tarkaanfii 5 / 6</div>
+    <h2>Ramaddii Wayitii</h2>
+    <p class="hint">Barsiisaa, gosa barnootaa, kutaa fi wayitii/torbee walitti qabsiisaa.</p>
+    ${!canAlloc ? `<p class="empty-note">Dursanii gosa barnootaa, barsiisaa fi kutaa galchaa.</p>` : `
+    <div class="alloc-form">
+      <div class="row2">
+        ${boxedSelect('al-teacher','Barsiisaa',teachers.map(t=>({v:t.id,l:t.name})),'')}
+        ${boxedSelect('al-subject','Gosa Barnootaa',subjects.map(s=>({v:s.id,l:s.name})),'')}
+        ${boxedSelect('al-class','Kutaa',classes.map(c=>({v:c.id,l:c.name})),'')}
+      </div>
+      <div class="row2" style="grid-template-columns:1fr 1fr;margin-top:4px;">
+        ${fieldBox('al-periods','Wayitii/Torbee','','number')}
+        <div style="display:flex;align-items:flex-end;">
+          <button class="btn btn-primary" style="width:100%" onclick="addAlloc()">+ Ida'i</button>
+        </div>
+      </div>
+    </div>
+    ${allocations.length? `<table class="alloc-list"><thead><tr><th>Barsiisaa</th><th>Barnoota</th><th>Kutaa</th><th>Wayitii</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : `<p class="empty-note">Ramaddiin ammatti hin galmoofne.</p>`}
+    <h3 style="font-size:14px;color:var(--chalk-green-dark);margin:18px 0 4px;">Waliigala Wayitii Barsiisaa (Torbanitti)</h3>
+    <div class="teacher-loads">${loads}</div>
+    `}
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="goTo(4)">← Duubatti</button>
+      <button class="btn btn-primary" ${allocations.length===0?'disabled':''} onclick="goTo(6); generateSchedule();">Sagantaa Uumi →</button>
+    </div>
+  `;
+}
+function addAlloc(){
+  const teacherId = document.getElementById('al-teacher').value;
+  const subjectId = document.getElementById('al-subject').value;
+  const classId = document.getElementById('al-class').value;
+  const periodsPerWeek = parseInt(document.getElementById('al-periods').value);
+  if(!teacherId||!subjectId||!classId||!periodsPerWeek||periodsPerWeek<1){
+    alert("Maaloo hunda guuti — barsiisaa, barnoota, kutaa fi wayitii/torbee."); return;
+  }
+  state.allocations.push({id:nextId(),teacherId,subjectId,classId,periodsPerWeek});
+  render();
+}
+function removeAlloc(id){
+  state.allocations = state.allocations.filter(a=>a.id!==id);
+  render();
+}
+
+/* ================= SCHEDULING ALGORITHM ================= */
+function generateSchedule(){
+  const days = state.school.days, periods = state.school.periods;
+  const classGrid = {};
+  state.classes.forEach(c=>{ classGrid[c.id] = Array.from({length:days},()=>Array(periods).fill(null)); });
+  const teacherBusy = {};
+  state.teachers.forEach(t=>{ teacherBusy[t.id] = Array.from({length:days},()=>Array(periods).fill(false)); });
+
+  let lessons = [];
+  state.allocations.forEach(a=>{
+    for(let i=0;i<a.periodsPerWeek;i++){
+      lessons.push({allocationId:a.id, teacherId:a.teacherId, subjectId:a.subjectId, classId:a.classId});
+    }
+  });
+  const teacherLoad = {};
+  state.allocations.forEach(a=>{ teacherLoad[a.teacherId] = (teacherLoad[a.teacherId]||0) + a.periodsPerWeek; });
+  lessons.sort((x,y)=> (teacherLoad[y.teacherId]||0) - (teacherLoad[x.teacherId]||0));
+
+  const unplaced = [];
+  lessons.forEach(lesson=>{
+    const candidates = [];
+    for(let d=0; d<days; d++){
+      for(let p=0; p<periods; p++){
+        if(classGrid[lesson.classId][d][p]===null && !teacherBusy[lesson.teacherId][d][p]){
+          const subjOnDay = classGrid[lesson.classId][d].filter(cell=>cell && cell.subjectId===lesson.subjectId).length;
+          candidates.push({d,p,subjOnDay});
+        }
+      }
+    }
+    if(candidates.length===0){ unplaced.push(lesson); return; }
+    candidates.sort((a,b)=> a.subjOnDay - b.subjOnDay);
+    const best = candidates[0];
+    classGrid[lesson.classId][best.d][best.p] = lesson;
+    teacherBusy[lesson.teacherId][best.d][best.p] = true;
+  });
+
+  state.schedule = { classGrid, teacherBusy, unplaced, days, periods };
+  state.viewClassId = state.classes[0] ? state.classes[0].id : null;
+  state.viewTeacherId = state.teachers[0] ? state.teachers[0].id : null;
+}
+
+/* ================= PAGE 6: SCHEDULE VIEW ================= */
+const DAY_NAMES = ["Wiixata","Kibxata","Roobii","Kamisa","Jimaata","Sanbata","Dilbata"];
+
+function renderPage6(){
+  if(!state.schedule){
+    return `
+      <div class="step-tag">Tarkaanfii 6 / 6</div>
+      <h2>Sagantaa</h2>
+      <p class="hint">Odeeffannoon hin guutamne. Duubatti deebi'aa ramaddii xumuraa.</p>
+      <div class="nav-row"><button class="btn btn-ghost" onclick="goTo(5)">← Duubatti</button><span></span></div>`;
+  }
+  const {unplaced} = state.schedule;
+  const warn = unplaced.length ? `<div class="warn-box">⚠ Wayitii ${unplaced.length} iddoo hin arganne (unplaced). Fuula 5 deebi'anii ramaddii wal keessa seenu sirreessaa.</div>` : '';
+
+  const tabs = `
+    <div class="view-tabs">
+      <button class="view-tab ${state.view==='class'?'active':''}" onclick="setView('class')">Kutaadhaan</button>
+      <button class="view-tab ${state.view==='teacher'?'active':''}" onclick="setView('teacher')">Barsiisaadhaan</button>
+      <button class="view-tab ${state.view==='all'?'active':''}" onclick="setView('all')">Waliigalaa</button>
+    </div>`;
+
+  let selector = '';
+  let tableHtml = '';
+  if(state.view==='class'){
+    selector = `<div class="sel-row"><select onchange="state.viewClassId=this.value;render()">
+      ${state.classes.map(c=>`<option value="${c.id}" ${c.id===state.viewClassId?'selected':''}>${c.name}</option>`).join('')}
+    </select></div>`;
+    tableHtml = buildClassTable(state.viewClassId);
+  } else if(state.view==='teacher'){
+    selector = `<div class="sel-row"><select onchange="state.viewTeacherId=this.value;render()">
+      ${state.teachers.map(t=>`<option value="${t.id}" ${t.id===state.viewTeacherId?'selected':''}>${t.name}</option>`).join('')}
+    </select></div>`;
+    tableHtml = buildTeacherTable(state.viewTeacherId);
+  } else {
+    tableHtml = state.classes.map(c=>`<h3 style="margin:22px 0 8px;color:var(--chalk-green-dark);font-size:14.5px;">${c.name}</h3>${buildClassTable(c.id)}`).join('');
+  }
+
+  return `
+    <div class="step-tag">Tarkaanfii 6 / 6</div>
+    <h2>Sagantaa Xumuraa</h2>
+    <p class="hint">Sagantaan mana barumsaa keessanii qophaa'eera.</p>
+    ${warn}
+    ${tabs}
+    ${selector}
+    <div class="print-btn-row"><button class="btn btn-ghost" onclick="window.print()">🖶 Maxxansi</button></div>
+    <div id="schedule-print-area">
+      ${tableHtml}
+      <div class="print-footer">Adonai Timetable</div>
+    </div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="goTo(5)">← Duubatti</button>
+      <button class="btn btn-ghost" onclick="if(confirm('Sagantaa haaraa jalqabuu?')){location.reload();}">Haaraa Jalqabi</button>
+    </div>
+  `;
+}
+function setView(v){ state.view = v; render(); }
+
+function buildClassTable(classId){
+  if(!classId) return '<p class="empty-note">Kutaan hin jiru.</p>';
+  const {days,periods,classGrid} = state.schedule;
+  let head = `<tr><th class="period-col">Wayitii</th>${Array.from({length:days},(_,d)=>`<th>${DAY_NAMES[d]||('Guyyaa '+(d+1))}</th>`).join('')}</tr>`;
+  let body = '';
+  for(let p=0;p<periods;p++){
+    body += `<tr><td class="period-col">${p+1}</td>`;
+    for(let d=0;d<days;d++){
+      const cell = classGrid[classId][d][p];
+      if(cell){
+        body += `<td class="slot-filled" style="background:${subjColor(cell.subjectId)}22;border-left:3px solid ${subjColor(cell.subjectId)}">
+          <div class="s-subj">${subjectName(cell.subjectId)}</div>
+          <div class="s-sub">${teacherName(cell.teacherId)}</div></td>`;
+      } else {
+        body += `<td></td>`;
+      }
+    }
+    body += `</tr>`;
+  }
+  return `<table class="schedule"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+}
+function buildTeacherTable(teacherId){
+  if(!teacherId) return '<p class="empty-note">Barsiisaan hin jiru.</p>';
+  const {days,periods,classGrid} = state.schedule;
+  let head = `<tr><th class="period-col">Wayitii</th>${Array.from({length:days},(_,d)=>`<th>${DAY_NAMES[d]||('Guyyaa '+(d+1))}</th>`).join('')}</tr>`;
+  let body = '';
+  for(let p=0;p<periods;p++){
+    body += `<tr><td class="period-col">${p+1}</td>`;
+    for(let d=0;d<days;d++){
+      let found = null, foundClassId=null;
+      for(const c of state.classes){
+        const cell = classGrid[c.id][d][p];
+        if(cell && cell.teacherId===teacherId){ found=cell; foundClassId=c.id; break; }
+      }
+      if(found){
+        body += `<td class="slot-filled" style="background:${subjColor(found.subjectId)}22;border-left:3px solid ${subjColor(found.subjectId)}">
+          <div class="s-subj">${subjectName(found.subjectId)}</div>
+          <div class="s-sub">${className(foundClassId)}</div></td>`;
+      } else {
+        body += `<td></td>`;
+      }
+    }
+    body += `</tr>`;
+  }
+  return `<table class="schedule"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+}
+
+/* ================= INIT ================= */
+render();
+</script>
+</body>
+</html>
